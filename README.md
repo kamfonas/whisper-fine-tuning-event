@@ -76,25 +76,38 @@ We've partnered up with Lambda to provide cloud compute for this event. They'll 
 40 GB GPUs, so you'll be loaded with some serious firepower! The Lambda API makes it easy to spin-up and launch 
 a GPU instance. In this section, we'll go through the steps for spinning up an instance one-by-one.
 
+<p align="center" width="100%">
+    <img width="50%" src="https://raw.githubusercontent.com/sanchit-gandhi/codesnippets/main/hf_x_lambda.jpg">
+</p>
+
 This section is split into three parts:
 
-1. [Signing-Up with Lambda](#signing-up-with-lambda-labs)
+1. [Signing-Up with Lambda](#signing-up-with-lambda)
 2. [Creating a Cloud Instance](#creating-a-cloud-instance)
 3. [Deleting a Cloud Instance](#deleting-a-cloud-instance)
 
 ### Signing-Up with Lambda
-<!--- TODO: SG - the first 100 people to sign up with lambda get GPU credit? --->
 
 1. Create an account with Lambda using your email address of choice: https://cloud.lambdalabs.com/sign-up. If you already have an account, skip to step 2.
 2. Using this same email address, email `cloud@lambdal.com` with the Subject line: `Lambda cloud account for HuggingFace Whisper event - payment authentication and credit request`.
 3. Each user who emails as above will receive $110 in credits (amounting to 100 hours of 1x A100 usage).
+4. Register a valid payment method with Lambda in order to redeem the credits (see instructions below).
 
-100 hours of 1x A100 usage should enable you to complete 5-10 fine-tuning runs. To maximise the GPU hours you have 
-available for training, we advise that you shut down GPUs when you are not using them and closely monitor your GPU usage 
-(see [Deleting a Cloud Instance](#deleting-a-cloud-instance)).
+100 hours of 1x A100 usage should enable you to complete 5-10 fine-tuning runs. To redeem these credits, you will need to 
+authorise a valid payment method with Lambda. Provided that you remain within $110 of compute spending, your card **will not** 
+be charged 💸. Registering your card with Lambda is a mandatory sign-up step that we unfortunately cannot bypass. But we 
+reiterate: you will not be charged provided you remain within $110 of compute spending!
+
+Follow steps 1-4 in the next section [Creating a Cloud Instance](#creating-a-cloud-instance) to register your
+card. If you experience issues with registering your card, contact the Lambda team on Discord (see [Communications and Problems](#communication-and-problems)).
+
+In order to maximise the free GPU hours you have available for training, we advise that you shut down GPUs when you are 
+not using them and closely monitor your GPU usage. We've detailed the steps you can follow to achieve this in [Deleting a Cloud Instance](#deleting-a-cloud-instance).
 
 ### Creating a Cloud Instance
 Estimated time to complete: 5 mins
+
+*You can also follow our video tutorial to set up a cloud instance on Lambda* 👉️ [YouTube Video](https://www.youtube.com/watch?v=Ndm9CROuk5g&list=PLo2EIpI_JMQtncHQHdHq2cinRVk_VZdGW)
 
 1. Click the link: https://cloud.lambdalabs.com/instances
 2. You'll be asked to sign in to your Lambda account (if you haven't done so already).
@@ -160,6 +173,8 @@ Your GPU device is now deleted and will stop consuming GPU credits.
 
 ## Set Up an Environment
 Estimated time to complete: 5 mins
+
+*Follow along our video tutorial detailing the set up* 👉️ [YouTube Video](https://www.youtube.com/playlist?list=PLo2EIpI_JMQtzC5feNpqQL7eToYKcOxYf)
 
 The Whisper model should be fine-tuned using **PyTorch**, **🤗 Transformers**, and, **🤗 Datasets**. In this 
 section, we'll cover how to set up an environment with the required libraries. This section assumes that you are SSH'd 
@@ -307,7 +322,8 @@ git config --global credential.helper store
 huggingface-cli login
 ```
 
-And then enter an authentication token from https://huggingface.co/settings/tokens.
+And then enter an authentication token from https://huggingface.co/settings/tokens. Create a new token if you do not have 
+one already. You should make sure that this token has "write" privileges.
 
 ## Data and Pre-Processing
 
@@ -352,86 +368,9 @@ load_dataset("mozilla-foundation/common_voice_10_0", "en", split="train+validati
 This notation for combining splits (`"split_a+split_b"`) is consistent for all resources in the event. You can combine 
 splits in this same way using the fine-tuning scripts in the following section [Fine-Tune Whisper](#fine-tune-whisper).
 
-In addition to the Common Voice corpus, incorporating supplementary training data is usually beneficial. The Whisper 
-paper demonstrates the significant effect that increasing the amount of training data can have on downstream 
-performance (_c.f._ Section 4.2 of the [paper](https://cdn.openai.com/papers/whisper.pdf)). There are a number of datasets that are available on the Hugging Face Hub that can be downloaded via 
-the 🤗 Datasets library in much the same way as Common Voice 11.
-
-We recommend the following four datasets on the Hugging Face Hub for multilingual speech recognition:
-
-<details>
-<summary>
-
-#### Common Voice 11
-
-</summary>
-
-[Common Voice 11](https://huggingface.co/datasets/mozilla-foundation/common_voice_11_0) is a crowd-sourced 
-open-licensed speech dataset where speakers record text from Wikipedia in various languages. Since anyone can contribute 
-recordings, there is significant variation in both audio quality and speakers. The audio conditions are challenging, with 
-recording artefacts, accented speech, hesitations, and the presence of foreign words. The transcriptions are both cased 
-and punctuated. As of version 11, there are over 100 languages available, both low and high-resource.
-</details>
-<details>
-<summary>
-
-#### VoxPopuli
-
-</summary>
-
-[VoxPopuli](https://huggingface.co/datasets/facebook/voxpopuli) is a large-scale multilingual speech corpus consisting 
-of data sourced from 2009-2020 European Parliament event recordings. Consequently, it occupies the unique domain of 
-oratory, political speech, largely sourced from non-native speakers. It contains labelled audio-transcription data for 
-15 European languages. The transcriptions are punctuated but not cased.
-</details>
-<details>
-<summary>
-
-#### Multilingual LibriSpeech
-
-</summary>
-
-[Multilingual LibriSpeech](https://huggingface.co/datasets/facebook/multilingual_librispeech) is the multilingual 
-equivalent of the [LibriSpeech ASR](https://huggingface.co/datasets/librispeech_asr) corpus. It comprises a large corpus 
-of read audiobooks taken from the [LibriVox](https://librivox.org/) project, making it a suitable dataset for academic 
-research. It contains data split into eight high-resource languages - English, German, Dutch, Spanish, French, Italian, 
-Portuguese and Polish. The transcriptions are neither punctuated nor cased.
-</details>
-<details>
-<summary>
-
-#### FLEURS
-
-</summary>
-
-[FLEURS](https://huggingface.co/datasets/google/fleurs) (Few-shot Learning Evaluation of Universal Representations of 
-Speech) is a dataset for evaluating speech recognition systems in 102 languages, including many that are classified as 
-'low-resource'. The data is derived from the [FLoRes-101](https://arxiv.org/abs/2106.03193) dataset, a machine 
-translation corpus with 3001 sentence translations from English to 101 other languages. Native speakers are recorded 
-narrating the sentence transcriptions in their native language. The recorded audio data is paired with the sentence 
-transcriptions to yield a multilingual speech recognition over all 101 languages. The training sets contain 
-approximately 10 hours of supervised audio-transcription data per language. Transcriptions come in two formats: un-normalised 
-(`"raw_transcription"`) and normalised (`"transcription"`).
-</details>
-
-The previously mentioned blog post provides a more in-depth explanation of the main English speech recognition, 
-multilingual speech recognition and speech translation datasets on the Hub: [A Complete Guide To Audio Datasets](https://huggingface.co/blog/audio-datasets#a-tour-of-audio-datasets-on-the-hub)  
-
-You can also explore all speech recognition datasets on the Hub to find one suited for your language and needs: [ASR datasets on the Hub](https://huggingface.co/datasets?task_categories=task_categories:automatic-speech-recognition&sort=downloads).
-
-If one wants to combine multiple datasets for training, it might make sense to take a look at 
-the [`interleave_datasets`](https://huggingface.co/docs/datasets/package_reference/main_classes.html?highlight=interleave#datasets.interleave_datasets) function.
-
-<!--- TODO: SG - example script for doing this --->
-
-In addition to publicly available data on the Hugging Face Hub, participants can also make use of their own audio data 
-for training. When using your own audio data, please make sure that you **are allowed to use the audio data**. For 
-instance, if the audio data is taken from media platforms, such as YouTube, please verify that the media platform and 
-the owner of the data have given their approval to use the audio data in the context of machine learning research. If 
-you are not sure whether the data you want to use has the appropriate licensing, please contact the Hugging Face team 
-on Discord.
-
-<!--- TODO: VB - tutorial for adding own data via audio folder --->
+If combining the `"train"` and `"validation"` splits of the Common Voice 11 dataset still gives insufficient training 
+data for your language, you can explore using other datasets on the Hub to train your model and try 
+[Mixing Datasets](#mixing-datasets-optional) to give larger training splits.
 
 ### Streaming Mode
 
@@ -524,6 +463,96 @@ With the provided training scripts, it is trivial to toggle between removing or 
 requiring at most three lines of code change. Switching between the different modes is explained in more detail in the 
 following section [Fine-Tune Whisper](#fine-tune-whisper).
 
+If you want to find out more about pre- and post-processing for speech recognition, we refer you in the direction of 
+the paper: [ESB: A Benchmark For Multi-Domain End-to-End Speech Recognition](https://arxiv.org/abs/2210.13352).
+
+The following two subsections are optional. They cover how you can mix datasets to form larger training splits and how 
+you can use custom data to fine-tune your model. If the Common Voice 11 dataset has sufficient data in your language to 
+fine-tune your model, you can skip to the next section [Fine-Tune Whisper](#fine-tune-whisper).
+
+### Mixing Datasets (optional)
+
+If the Common Voice 11 dataset contains insufficient training data to fine-tune Whisper in your language, you can explore mixing 
+different datasets to create a larger combined training set. Incorporating supplementary training data is almost always beneficial for training. 
+The Whisper paper demonstrates the significant effect that increasing the amount of training data can have on downstream 
+performance (_c.f._ Section 4.2 of the [paper](https://cdn.openai.com/papers/whisper.pdf)). There are a number of datasets 
+that are available on the Hugging Face Hub that can be downloaded via the 🤗 Datasets library in much the same way as 
+Common Voice 11.
+
+We recommend selecting from the following four datasets on the Hugging Face Hub for multilingual speech recognition:
+
+| Dataset                                                                                       | Languages | Casing | Punctuation |
+|-----------------------------------------------------------------------------------------------|-----------|--------|-------------|
+| [Common Voice 11](https://huggingface.co/datasets/mozilla-foundation/common_voice_11_0)       | 100+      | ✅      | ✅           |
+| [VoxPopuli](https://huggingface.co/datasets/facebook/voxpopuli)                               | 15        | ❌      | ✅           |
+| [Multilingual LibriSpeech](https://huggingface.co/datasets/facebook/multilingual_librispeech) | 6         | ❌      | ❌           |
+| [FLEURS](https://huggingface.co/datasets/google/fleurs)                                       | 100+      | ✅      | ✅           |
+
+
+<!---
+<details>
+<summary>
+
+#### Common Voice 11
+
+</summary>
+
+[Common Voice 11](https://huggingface.co/datasets/mozilla-foundation/common_voice_11_0) is a crowd-sourced 
+open-licensed speech dataset where speakers record text from Wikipedia in various languages. Since anyone can contribute 
+recordings, there is significant variation in both audio quality and speakers. The audio conditions are challenging, with 
+recording artefacts, accented speech, hesitations, and the presence of foreign words. The transcriptions are both cased 
+and punctuated. As of version 11, there are over 100 languages available, both low and high-resource.
+</details>
+<details>
+<summary>
+
+#### VoxPopuli
+
+</summary>
+
+[VoxPopuli](https://huggingface.co/datasets/facebook/voxpopuli) is a large-scale multilingual speech corpus consisting 
+of data sourced from 2009-2020 European Parliament event recordings. Consequently, it occupies the unique domain of 
+oratory, political speech, largely sourced from non-native speakers. It contains labelled audio-transcription data for 
+15 European languages. The transcriptions are punctuated but not cased.
+</details>
+<details>
+<summary>
+
+#### Multilingual LibriSpeech
+
+</summary>
+
+[Multilingual LibriSpeech](https://huggingface.co/datasets/facebook/multilingual_librispeech) is the multilingual 
+equivalent of the [LibriSpeech ASR](https://huggingface.co/datasets/librispeech_asr) corpus. It comprises a large corpus 
+of read audiobooks taken from the [LibriVox](https://librivox.org/) project, making it a suitable dataset for academic 
+research. It contains data split into eight high-resource languages - English, German, Dutch, Spanish, French, Italian, 
+Portuguese and Polish. The transcriptions are neither punctuated nor cased.
+</details>
+<details>
+<summary>
+
+#### FLEURS
+
+</summary>
+
+[FLEURS](https://huggingface.co/datasets/google/fleurs) (Few-shot Learning Evaluation of Universal Representations of 
+Speech) is a dataset for evaluating speech recognition systems in 102 languages, including many that are classified as 
+'low-resource'. The data is derived from the [FLoRes-101](https://arxiv.org/abs/2106.03193) dataset, a machine 
+translation corpus with 3001 sentence translations from English to 101 other languages. Native speakers are recorded 
+narrating the sentence transcriptions in their native language. The recorded audio data is paired with the sentence 
+transcriptions to yield a multilingual speech recognition over all 101 languages. The training sets contain 
+approximately 10 hours of supervised audio-transcription data per language. Transcriptions come in two formats: un-normalised 
+(`"raw_transcription"`) and normalised (`"transcription"`).
+</details>
+
+The previously mentioned blog post provides a more in-depth explanation of the main English speech recognition, 
+multilingual speech recognition and speech translation datasets on the Hub: [A Complete Guide To Audio Datasets](https://huggingface.co/blog/audio-datasets#a-tour-of-audio-datasets-on-the-hub)  
+
+You can also explore all speech recognition datasets on the Hub to find one suited for your language and needs: [ASR datasets on the Hub](https://huggingface.co/datasets?task_categories=task_categories:automatic-speech-recognition&sort=downloads).
+--->
+
+You can try training on these datasets individually, or mix them to form larger train sets.
+
 When mixing datasets, you should ensure the transcription format is consistent across datasets. For example, if you mix 
 Common Voice 11 (cased + punctuated) with VoxPopuli (un-cased + punctuated), you will need to lower-case **all the text** 
 for both training and evaluation, such that the transcriptions are consistent across training samples (un-cased + punctuated). 
@@ -535,15 +564,19 @@ all transcriptions are un-cased and un-punctuated for all training samples.
 Having a mismatch in formatting for different training samples can reduce the final performance of your fine-tuned Whisper 
 model.
 
-| Dataset                                                                                       | Casing | Punctuation |
-|-----------------------------------------------------------------------------------------------|--------|-------------|
-| [Common Voice 11](https://huggingface.co/datasets/mozilla-foundation/common_voice_11_0)       | ✅      | ✅           |
-| [VoxPopuli](https://huggingface.co/datasets/facebook/voxpopuli)                               | ❌      | ✅           |
-| [Multilingual LibriSpeech](https://huggingface.co/datasets/facebook/multilingual_librispeech) | ❌      | ❌           |
-| [FLEURS](https://huggingface.co/datasets/google/fleurs)                                       | ✅      | ✅           |
+If you want to combine multiple datasets for training, you can refer to the code-snippet provided for interleaving 
+datasets with streaming mode: [interleave_streaming_datasets.ipynb](https://github.com/huggingface/community-events/blob/main/whisper-fine-tuning-event/interleave_streaming_datasets.ipynb).
 
-If you want to find out more about pre- and post-processing for speech recognition, we refer you in the direction of 
-the paper: [ESB: A Benchmark For Multi-Domain End-to-End Speech Recognition](https://arxiv.org/abs/2210.13352).
+### Custom Data (optional)
+
+In addition to publicly available data on the Hugging Face Hub, participants can also make use of their own audio data 
+for training. When using your own audio data, please make sure that you **are allowed to use the audio data**. For 
+instance, if the audio data is taken from media platforms, such as YouTube, please verify that the media platform and 
+the owner of the data have given their approval to use the audio data in the context of machine learning research. If 
+you are not sure whether the data you want to use has the appropriate licensing, please contact the Hugging Face team 
+on Discord.
+
+<!--- TODO: VB - tutorial for adding own data via audio folder --->
 
 ## Fine-Tune Whisper
 
@@ -555,7 +588,7 @@ models on the Hugging Face Hub:
 
 | Size   | Layers | Width | Heads | Parameters | English-only                                         | Multilingual                                      |
 |--------|--------|-------|-------|------------|------------------------------------------------------|---------------------------------------------------|
-| tiny   | 4      | 384   | 6     | 39 M       | [✓](https://huggingface.co/openai/whisper-tiny.en)   | [✓](https://huggingface.co/openai/whisper-tiny.)  |
+| tiny   | 4      | 384   | 6     | 39 M       | [✓](https://huggingface.co/openai/whisper-tiny.en)   | [✓](https://huggingface.co/openai/whisper-tiny)  |
 | base   | 6      | 512   | 8     | 74 M       | [✓](https://huggingface.co/openai/whisper-base.en)   | [✓](https://huggingface.co/openai/whisper-base)   |
 | small  | 12     | 768   | 12    | 244 M      | [✓](https://huggingface.co/openai/whisper-small.en)  | [✓](https://huggingface.co/openai/whisper-small)  |
 | medium | 24     | 1024  | 16    | 769 M      | [✓](https://huggingface.co/openai/whisper-medium.en) | [✓](https://huggingface.co/openai/whisper-medium) |
@@ -589,6 +622,7 @@ Before jumping into any training, make sure you've accepted the Common Voice 11 
 on the Hugging Face Hub.
 
 ### Python Script
+*Checkout the video tutorial detailing how to fine-tune your whisper model via the CLI* 👉️ [YouTube Video](https://www.youtube.com/playlist?list=PLo2EIpI_JMQuKpnFm1ntcLKP6gq0l0f1Q)
 
 1. **Create a model repository**
 
@@ -667,6 +701,9 @@ echo 'python run_speech_recognition_seq2seq_streaming.py \
 	--text_column_name="sentence" \
 	--freeze_feature_encoder="False" \
 	--report_to="tensorboard" \
+	--metric_for_best_model="wer" \
+	--greater_is_better="False" \
+	--load_best_model_at_end \
 	--gradient_checkpointing \
 	--fp16 \
 	--overwrite_output_dir \
@@ -719,6 +756,7 @@ It will be like you never left!
 `tmux` guide: https://www.hamvocke.com/blog/a-quick-and-easy-guide-to-tmux/
 
 ### Jupyter Notebook
+*We've detailed these steps in a video tutorial to help you get up to speed faster* 👉️ [YouTube Video](https://www.youtube.com/playlist?list=PLo2EIpI_JMQs9z-N4v8L_Jb4KF6kAkylX)
 
 1. **SSH port forwarding**
 
@@ -777,7 +815,7 @@ We can then enter the repository using the `cd` command:
 cd whisper-small-es
 ```
 
-2. **Add notebook**
+3. **Add notebook**
 
 We encourage participants to add all the training notebook directly to the model repository. This way, 
 training runs are fully reproducible.
@@ -791,7 +829,7 @@ cp ~/community-events/whisper-fine-tuning-event/fine-tune-whisper-streaming.ipyn
 
 This will download a copy of the iPython notebook to your model repository.
 
-3. **Launch Jupyter**
+4. **Launch Jupyter**
 
 First, we need to make sure `jupyterlab` is installed:
 
@@ -818,7 +856,7 @@ Once in the `tmux` session, we can launch `jupyter lab`:
 jupyter lab --port 8888
 ```
 
-4. **Open Jupyter in browser**
+5. **Open Jupyter in browser**
 
 Now, this is the hardest step of running training from a Jupyter Notebook! Open a second terminal window on your local 
 machine and SSH into your GPU again. This time, it doesn't matter whether we include the `-L 8888:localhost:8888` part, 
@@ -836,7 +874,7 @@ address bar and press Enter.
 
 Voilà! We're now running a Jupyter Notebook on our GPU machine through the web browser on our local device!
 
-5. **Open notebook**
+6. **Open fine-tuning notebook**
 
 We can use the file explorer on the left to go to our model repository and open the Jupyter notebook `fine_tune_whisper_streaming.ipynb`. 
 In the top right of the notebook, you'll see a small window that says "Python 3". Clicking on this window will open a 
@@ -852,9 +890,10 @@ sure that training is working before closing the notebook. You can monitor train
 on the Hugging Face Hub under the "Training Metrics" tab.
 
 ### Google Colab
-The Google Colab for fine-tuning Whisper is entirely self-contained. You can access it through the following link:
+The Google Colab for fine-tuning Whisper is entirely self-contained. No need to set up an environment or sping up a GPU.
+You can access it through the following link:
 
-<a target="_blank" href="https://colab.research.google.com/github/sanchit-gandhi/notebooks/blob/main/fine_tune_whisper_streaming.ipynb">
+<a target="_blank" href="https://colab.research.google.com/github/huggingface/community-events/blob/main/whisper-fine-tuning-event/fine_tune_whisper_streaming_colab.ipynb">
     <img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/>
 </a>
 
@@ -887,15 +926,22 @@ upwards of 12 hours for 5k training steps. We reckon you're better off training 
 
 ### Punctuation, Casing and Normalisation
 
-When using the Python training script, normalisation is only applied during evaluation by setting the flag 
-`--do_normalize_eval_only` (which we recommend setting). Removing casing for the training data is enabled by passing the 
-flag `--do_lower_case`. Removing punctuation in the training data is achieved by passing the flag `--do_remove_punctuation`. 
-The punctuation characters removed are defined in [run_speech_recognition_seq2seq_streaming.py#L450](https://github.com/huggingface/community-events/blob/main/whisper-fine-tuning-event/run_speech_recognition_seq2seq_streaming.py#L450).
+When using the Python training script, removing casing for the training data is enabled by passing the flag `--do_lower_case`. 
+Removing punctuation in the training data is achieved by passing the flag `--do_remove_punctuation`. Both of these flags 
+default to False, and we **do not** recommend setting either of them to True. This will ensure your fine-tuned model 
+learns to predict casing and punctuation. Normalisation is only applied during evaluation by setting the flag 
+`--do_normalize_eval` (which defaults to True and recommend setting). Normalisation is performed according to the 
+'official' Whisper normaliser. This normaliser applies the following basic standardisation for non-English text:
+1. Remove any phrases between matching brackets ([, ]).
+2. Remove any phrases between matching parentheses ((, )).
+3. Replace any markers, symbols, and punctuation characters with a space, i.e. when the Unicode category of each character in the NFKC-normalized string starts with M, S, or P.
+4. Make the text lowercase.
+5. Replace any successive whitespace characters with a space.
 
-Similarly, in the notebooks, normalisation is only applied during evaluation by setting the variable 
-`do_normalize_eval_only=True` (which we recommend setting). Removing casing in the training data is enabled by setting 
-the variable `do_lower_case = True`, and punctuation by `do_remove_punctuation = True`. The same characters are removed 
-as the Python training script.
+Similarly, in the notebooks, removing casing in the training data is enabled by setting the variable `do_lower_case = True`, 
+and punctuation by `do_remove_punctuation = True`. We do not recommend setting either of these to True to ensure that 
+your model learns to predict casing and punctuation. Thus, they are set to False by default. Normalisation is only 
+applied during evaluation by setting the variable `do_normalize_eval=True` (which we do recommend setting). 
 
 ## Evaluation
 
@@ -915,17 +961,20 @@ or other datasets of your choice.
 
 ## Building a Demo
 
-Finally, on to the fun part! Time to sit back and watch the model transcribe audio. We've created a [template Gradio demo](https://huggingface.co/spaces/sanchit-gandhi/whisper-small) 
+Finally, on to the fun part! Time to sit back and watch the model transcribe audio. We've created a [template Gradio demo](https://huggingface.co/spaces/whisper-event/whisper-demo) 
 that you can use to showcase your fine-tuned Whisper model 📢
 
-Click the link to duplicate the template demo to your account: https://huggingface.co/spaces/sanchit-gandhi/whisper-small?duplicate=true
+Click the link to duplicate the template demo to your account: https://huggingface.co/spaces/whisper-event/whisper-demo?duplicate=true
 
-Click "Files and versions" -> "app.py" -> "edit". Change the model identifier to your fine-tuned model (line 9). 
-Scroll to the bottom of the page and click "Commit changes to `main`". The demo will reboot, this time using your 
-fine-tuned model. You can share this demo with your friends and family so that they can use the model that you've 
-trained!
+We recommend giving your space a similar name to your fine-tuned model (e.g. `whisper-demo-es`) and setting the visibility 
+to "Public". 
 
-<!--- TODO: VB - Add YT space link when ready --->
+Once you've duplicated the Space to your account, click "Files and versions" -> "app.py" -> "edit". Change the model 
+identifier to your fine-tuned model (line 9). Scroll to the bottom of the page and click "Commit changes to `main`". 
+The demo will reboot, this time using your fine-tuned model. You can share this demo with your friends and family so 
+that they can use the model that you've trained!
+
+*Checkout our video tutorial to get a better understanding 👉️ [YouTube Video](https://www.youtube.com/watch?v=VQYuvl6-9VE)*
 
 ## Communication and Problems
 

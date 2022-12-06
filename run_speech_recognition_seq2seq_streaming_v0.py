@@ -22,6 +22,8 @@ with 🤗 Datasets' streaming mode.
 
 import logging
 import os
+import re
+import string
 import sys
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Union
@@ -49,7 +51,7 @@ from transformers.trainer_pt_utils import IterableDatasetShard
 from transformers.trainer_utils import get_last_checkpoint, is_main_process
 from transformers.utils import check_min_version, send_example_telemetry
 from transformers.utils.versions import require_version
-from transformers.models.whisper.english_normalizer import BasicTextNormalizer
+
 
 # Will error if the minimal version of Transformers is not installed. Remove at your own risks.
 check_min_version("4.25.0.dev0")
@@ -413,11 +415,14 @@ def main():
         use_auth_token=True if model_args.use_auth_token else None,
     )
 
+    # supress use of cache since we use gradient checkpointing
+    model.config.use_cache = False
+
     if model.config.decoder_start_token_id is None:
         raise ValueError("Make sure that `config.decoder_start_token_id` is correctly defined")
 
-    if model_args.freeze_feature_encoder:
-        model.freeze_feature_encoder()
+    #if model_args.freeze_feature_encoder:
+    #    model.freeze_feature_encoder()
 
     if model_args.freeze_encoder:
         model.freeze_encoder()
@@ -443,7 +448,9 @@ def main():
     model_input_name = feature_extractor.model_input_names[0]
     do_lower_case = data_args.do_lower_case
     do_remove_punctuation = data_args.do_remove_punctuation
-    normalizer = BasicTextNormalizer()  # 'official' text normalizer from OpenAI
+
+    punctuation_to_remove = string.punctuation.replace("'", "")  # don't remove apostrophes
+    punctuation_to_remove_regex = f"[{''.join(punctuation_to_remove)}]"
 
     if data_args.max_train_samples is not None:
         raw_datasets["train"] = raw_datasets["train"].take(data_args.max_train_samples)
@@ -462,7 +469,7 @@ def main():
         # process targets
         input_str = batch[text_column_name].lower() if do_lower_case else batch[text_column_name]
         if do_remove_punctuation:
-            input_str = normalizer(input_str).strip()
+            input_str = re.sub(punctuation_to_remove_regex, " ", input_str).strip()
         batch["labels"] = tokenizer(input_str).input_ids
         return batch
 
@@ -497,13 +504,9 @@ def main():
 
         pred.label_ids[pred.label_ids == -100] = tokenizer.pad_token_id
 
-        pred_str = tokenizer.batch_decode(pred_ids, skip_special_tokens=True)
+        pred_str = tokenizer.batch_decode(pred_ids, skip_special_tokens=True, normalize=do_normalize_eval)
         # we do not want to group tokens when computing the metrics
-        label_str = tokenizer.batch_decode(pred.label_ids, skip_special_tokens=True)
-
-        if do_normalize_eval:
-            pred_str = [normalizer(pred) for pred in pred_str]
-            label_str = [normalizer(label) for label in label_str]
+        label_str = tokenizer.batch_decode(pred.label_ids, skip_special_tokens=True, normalize=do_normalize_eval)
 
         wer = 100 * metric.compute(predictions=pred_str, references=label_str)
 
