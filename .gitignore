@@ -17,5 +17,7 @@ notebooks/temp*
 demoSave/*
 demoSave*
 assets/*
+*.json
 */*.json
 *.zip
+.cache*

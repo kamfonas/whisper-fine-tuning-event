@@ -99,7 +99,7 @@ class ModelArguments:
         },
     )
     freeze_feature_encoder: bool = field(
-        default=True, metadata={"help": "Whether to freeze the feature encoder layers of the model."}
+        default=True, metadata={"help": "Deprecated - Whether to freeze the feature encoder layers of the model."}
     )
     freeze_encoder: bool = field(
         default=False, metadata={"help": "Whether to freeze the entire encoder of the seq2seq model."}
@@ -119,6 +119,10 @@ class ModelArguments:
     )
     model_index_name: str = field(default=None, metadata={"help": "Pretty name for the model card."})
 
+    ## added by Michael Kamfonas
+    use_cache: bool = field(
+        default=False, metadata={"help": "Whether to use cache."}
+    )
 
 @dataclass
 class DataTrainingArguments:
@@ -413,11 +417,14 @@ def main():
         use_auth_token=True if model_args.use_auth_token else None,
     )
 
+    model.config.use_cache = model_args.use_cache
+
     if model.config.decoder_start_token_id is None:
         raise ValueError("Make sure that `config.decoder_start_token_id` is correctly defined")
 
-    if model_args.freeze_feature_encoder:
-        model.freeze_feature_encoder()
+    # deprecated
+    #if model_args.freeze_feature_encoder:
+    #    model.freeze_feature_encoder()
 
     if model_args.freeze_encoder:
         model.freeze_encoder()
