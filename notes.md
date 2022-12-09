@@ -174,3 +174,19 @@ Very true! It would be nice to have a script where we can enable / disable strea
 I hope that answers your questions @farsipal! In summary, you can control the training args with your file run.sh, including things like gradient checkpointing etc 🙂 Check out the README for more detailed instructions! https://github.com/huggingface/community-events/tree/main/whisper-fine-tuning-event#python-script Best of luck with your training runs! Keep us posted with any results!
 
 ===================================================================================
+
+ used your notebook https://huggingface.co/farsipal/whisper-small-el/blob/main/fine-tune-whisper-streaming-cf11-el-v2.ipynb
+after I wrote to you, I decided to compare your notebook and the original.
+model.config.forced_decoder_ids = None
+ Set None like here and now it works. Do you know is it ok?
+fine-tune-whisper-streaming-cf11-el-v2.ipynb · farsipal/whisper-sma...
+fine-tune-whisper-streaming-cf11-el-v2.ipynb · farsipal/whisper-sma...
+sanchit-gandhi — Today at 5:51 AM
+Hey @Aigiz! 
+model.config.forced_decoder_ids = None
+This is correct! The forced_decoder_ids specify certain tokens that are 'forced' at the beginning of the generation process. The probabilities of these tokens are set to 1 in the decoding process. We use the 'forced' ids for inference with the pre-trained model to control the language and the task (transcribe or translate). 
+
+For fine-tuning, we don't need to set any forced ids -> we train the model to predict the correct language and task tokens, so the fine-tuned model knows the correct language and task ids to set by itself 🙂 
+
+Hope that makes sense!
+

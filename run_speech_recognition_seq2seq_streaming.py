@@ -124,6 +124,11 @@ class ModelArguments:
         default=False, metadata={"help": "Whether to use cache."}
     )
 
+    dropout: float = field(
+        default = 0.0, metadata = {"help": "dropout probability."}
+    )
+
+
 @dataclass
 class DataTrainingArguments:
     """
@@ -394,7 +399,8 @@ def main():
         use_auth_token=True if model_args.use_auth_token else None,
     )
 
-    config.update({"forced_decoder_ids": model_args.forced_decoder_ids, "suppress_tokens": model_args.suppress_tokens})
+    config.update({ "forced_decoder_ids": model_args.forced_decoder_ids, 
+                    "suppress_tokens": model_args.suppress_tokens})
 
     feature_extractor = AutoFeatureExtractor.from_pretrained(
         model_args.feature_extractor_name if model_args.feature_extractor_name else model_args.model_name_or_path,
@@ -418,6 +424,7 @@ def main():
     )
 
     model.config.use_cache = model_args.use_cache
+    model.config.dropout = model_args.dropout
 
     if model.config.decoder_start_token_id is None:
         raise ValueError("Make sure that `config.decoder_start_token_id` is correctly defined")
