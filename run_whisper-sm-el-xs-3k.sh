@@ -7,7 +7,7 @@ python ./run_speech_recognition_seq2seq_streaming.py \
                 --use_auth_token       False \
                 --freeze_encoder       False \
                 --model_index_name     "whisper-sm-el-xs" \
-                --dataset_name         "mozilla-foundation/common_voice_11_0" \
+                --dataset_name         "mozilla-foundation/common_voice_11_0" "google/fleurs" \
                 --dataset_config_name  "el" \
                 --audio_column_name    "audio" \
                 --text_column_name     "sentence" \

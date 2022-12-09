@@ -28,7 +28,7 @@ from typing import Any, Dict, List, Optional, Union
 
 import datasets
 import torch
-from datasets import IterableDatasetDict, interleave_datasets, load_dataset
+from datasets import Audio, IterableDatasetDict, interleave_datasets, load_dataset
 from torch.utils.data import IterableDataset
 
 import evaluate
@@ -50,6 +50,9 @@ from transformers.trainer_utils import get_last_checkpoint, is_main_process
 from transformers.utils import check_min_version, send_example_telemetry
 from transformers.utils.versions import require_version
 from transformers.models.whisper.english_normalizer import BasicTextNormalizer
+
+TEXT_COL_NAME="text"
+AUDIO_COL_NAME="audio"
 
 # Will error if the minimal version of Transformers is not installed. Remove at your own risks.
 check_min_version("4.25.0.dev0")
@@ -136,10 +139,12 @@ class DataTrainingArguments:
     """
 
     dataset_name: str = field(
-        default=None, metadata={"help": "The name of the dataset to use (via the datasets library)."}
+        default=None, 
+        metadata={"help": "The name of the dataset to use (via the datasets library)."}
     )
     dataset_config_name: Optional[str] = field(
-        default=None, metadata={"help": "The configuration name of the dataset to use (via the datasets library)."}
+        default=None, 
+        metadata={"help": "The configuration name of the dataset to use (via the datasets library)."}
     )
     text_column: Optional[str] = field(
         default=None,
@@ -229,7 +234,18 @@ class DataTrainingArguments:
             )
         },
     )
-
+    stopping_strategy: Optional[str] = field(
+        default="all_exhausted",
+        metadata={
+             "help": "Strategy used to consume interleaved data. Default = 'all_exhausted'"
+        }
+    )
+    streaming: bool = field(
+        default=True,
+        metadata={
+             "help": "Stream the data. Default = True"
+        }
+    )
 
 @dataclass
 class DataCollatorSpeechSeq2SeqWithPadding:
@@ -289,6 +305,65 @@ def load_streaming_dataset(dataset_name, dataset_config_name, split="train", **k
         dataset = load_dataset(dataset_name, dataset_config_name, split=split, streaming=True, **kwargs)
         return dataset
 
+def load_multiple_streaming_datasets(
+    dataset_names: List,
+    dataset_config_names: List,
+    splits: Optional[List] = None,
+    text_column_names: Optional[List] = None,
+    sampling_rate: Optional[int] = 16000,
+    stopping_strategy: Optional[str] = "all_exhausted",
+    streaming = True,
+    **kwargs
+    ) -> IterableDataset:
+
+    if len(dataset_names) != len(dataset_config_names):
+        raise ValueError(
+            f"Ensure one config is passed for each dataset, got {len(dataset_names)} datasets and"
+            f" {len(dataset_config_names)} configs."
+        )
+
+    if splits is not None and len(splits) != len(dataset_names):
+        raise ValueError(
+            f"Ensure one train_split is passed for each dataset, got {len(dataset_names)} datasets and {len(train_splits)} splits."
+        )
+
+    if text_column_names is not None and len(text_column_names) != len(dataset_names):
+        raise ValueError(
+            f"Ensure one text column name is passed for each dataset, got {len(dataset_names)} datasets and"
+            f" {len(text_column_names)} text column names."
+        )
+
+    splits = splits if splits is not None \
+        else ["train" for i in range(len(dataset_names))]
+
+    text_column_names = (
+        text_column_names if text_column_names is not None \
+            else ["text" for i in range(len(dataset_names))]
+    )
+
+
+    all_data_splits = []
+    # iterate over the datasets we want to interleave
+    for dset, cfgNm, splt,  colNm in zip(dataset_names,dataset_config_names,\
+                                                splits,text_column_names):
+
+        dset_splits = [load_dataset(dset, cfgNm, split=c, streaming=streaming, **kwargs) \
+            for c in splt.split('+') if c != '-']
+
+        dset_splits = [ds.cast_column("audio", Audio(sampling_rate)) \
+            for ds in dset_splits]
+
+        dset_splits = [ds.rename_column(colNm, "text") for ds in dset_splits]
+
+        cols2keep = set([AUDIO_COL_NAME, TEXT_COL_NAME])
+
+        dset_splits = [ds.remove_columns(set(ds.features.keys()) - cols2keep) for ds in dset_splits]
+
+        all_data_splits +=   dset_splits
+        
+    interleaved_dataset = interleave_datasets(all_data_splits, stopping_strategy=stopping_strategy)
+
+    return interleaved_dataset
 
 def main():
     # 1. Parse input arguments
@@ -356,36 +431,55 @@ def main():
     # 4. Load dataset
     raw_datasets = IterableDatasetDict()
 
+    # if training_args.do_train:
+    #     raw_datasets["train"] = load_streaming_dataset(
+    #         data_args.dataset_name,
+    #         data_args.dataset_config_name,
+    #         split=data_args.train_split_name,
+    #         use_auth_token=True if model_args.use_auth_token else None,
+    #     )
+
+    # if training_args.do_eval:
+    #     raw_datasets["eval"] = load_streaming_dataset(
+    #         data_args.dataset_name,
+    #         data_args.dataset_config_name,
+    #         split=data_args.eval_split_name,
+    #         use_auth_token=True if model_args.use_auth_token else None,
+    #     )
+
     if training_args.do_train:
-        raw_datasets["train"] = load_streaming_dataset(
-            data_args.dataset_name,
-            data_args.dataset_config_name,
-            split=data_args.train_split_name,
+        raw_datasets["train"] = load_multiple_streaming_datasets(
+            dataset_names=data_args.dataset_name.split(","), 
+            dataset_config_names=data_args.dataset_config_name.split(","),
+            splits = data_args.train_split_name.split(","),
+            text_column_names = data_args.text_column_name.split(","),
+            sampling_rate  = 16000,
             use_auth_token=True if model_args.use_auth_token else None,
         )
 
     if training_args.do_eval:
-        raw_datasets["eval"] = load_streaming_dataset(
-            data_args.dataset_name,
-            data_args.dataset_config_name,
-            split=data_args.eval_split_name,
+        raw_datasets["eval"] = load_multiple_streaming_datasets(
+            dataset_names=data_args.dataset_name.split(","), 
+            dataset_config_names=data_args.dataset_config_name.split(","),
+            splits  = data_args.eval_split_name.split(","),
+            text_column_names = data_args.text_column_name.split(","),
+            sampling_rate  = 16000,
             use_auth_token=True if model_args.use_auth_token else None,
         )
 
     raw_datasets_features = list(next(iter(raw_datasets.values())).features.keys())
 
-    if data_args.audio_column_name not in raw_datasets_features:
+    if AUDIO_COL_NAME not in raw_datasets_features:
         raise ValueError(
             f"--audio_column_name '{data_args.audio_column_name}' not found in dataset '{data_args.dataset_name}'. "
             "Make sure to set `--audio_column_name` to the correct audio column - one of "
             f"{', '.join(raw_datasets_features)}."
         )
 
-    if data_args.text_column_name not in raw_datasets_features:
+    if TEXT_COL_NAME not in raw_datasets_features:
         raise ValueError(
-            f"--text_column_name {data_args.text_column_name} not found in dataset '{data_args.dataset_name}'. "
-            "Make sure to set `--text_column_name` to the correct text column - one of "
-            f"{', '.join(raw_datasets_features)}."
+            f"--text_column_name {TEXT_COL_NAME} not found in dataset. "
+            "Make sure to set `--text_column_name` to the the respective correct text columns."
         )
 
     # 5. Load pretrained model, tokenizer, and feature extractor
@@ -435,7 +529,7 @@ def main():
 
     if model_args.freeze_encoder:
         model.freeze_encoder()
-        model.model.encoder.gradient_checkpointing = False
+        #model.model.encoder.gradient_checkpointing = False
 
     if data_args.language is not None:
         # We only need to set the task id when the language is specified (i.e. in a multilingual setting)
@@ -452,8 +546,8 @@ def main():
     # We need to read the audio files as arrays and tokenize the targets.
     max_input_length = data_args.max_duration_in_seconds * feature_extractor.sampling_rate
     min_input_length = data_args.min_duration_in_seconds * feature_extractor.sampling_rate
-    audio_column_name = data_args.audio_column_name
-    text_column_name = data_args.text_column_name
+    audio_column_name = AUDIO_COL_NAME
+    text_column_name = TEXT_COL_NAME
     model_input_name = feature_extractor.model_input_names[0]
     do_lower_case = data_args.do_lower_case
     do_remove_punctuation = data_args.do_remove_punctuation

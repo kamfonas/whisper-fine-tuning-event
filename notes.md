@@ -280,3 +280,22 @@ subprocess.run(["pip", "install", "--quiet", "datasets", "git+https://github.com
 Note: placed these scripts in setup folder
 
 =========================================================================================
+
+ierre — 12/07/2022 7:05 AM
+@sanchit-gandhi Hi. In the github whisper page event, the learning rate is 1e-5. However, I do not see this value in the Whisper OpenAI paper (see page 28 and screen-shot). What is your proposal for each Whisper model (tiny, base, small, medium, large, large v2)? Thank you. (note: I understand that the LR for fine tuning is lower than the LR for pre-training but since the LR value is really important to get good results, I prefer to ask) 
+Image
+sanchit-gandhi — Yesterday at 6:04 AM
+Hey @pierre! Great question! The learning rate is indeed a very important parameter to get good fine-tuning performance, and one that we have to experiment with to get right. My recommendation would be to monitor the training loss for the first 500-1000 training steps of your fine-tuning run to gauge whether you've set the learning rate appropriately. Each case is different, but I've tried to give a setting that works best for most!
+
+In practice, using a lower learning rate for fine-tuning vs pre-training gives superior results. These are the observations that I made when fine-tuning the Whisper model for the ESB paper (https://arxiv.org/abs/2210.13352) and from my extensive testing for multilingual fine-tuning prior to the event. Generally, I found that a learning rate of 1e-5 worked well for the small and medium checkpoints across most languages. This is the highest learning rate that you can get away with without the gradient updates becoming noisy. Selecting a higher learning rate means that you perform larger parameter updates, and so should be able to push the parameters into a more optimal range faster. But if you go too high, you risk the gradient updates becoming unstable, giving a noisy training loss curve and noisy parameter updates. This is when you'll get worse performance.
+
+A good training loss curve looks similar to the one from @farsipal from the Greek fine-tuning run (https://huggingface.co/farsipal/whisper-small-el). Look how it smoothly decays. This is exactly what we want from a loss curve 
+Image
+Now a noisy training loss curve looks similar to the one from @KLyN fine-tuning on Korean (I hope you don't mind me sharing so that we can all learn from this run!):
+Image
+We can see that the training loss for the first 1k train steps jumps around a lot, doesn't decay gradually, and gets stuck around a value of 0.5. These are signs that are training loss is too high. With @KLyN, we've reduced the learning rate to 3e-7 and are getting much smoother loss curves 🙌
+I asked the Whisper author Jong Wook Kim (who spoke on Monday) about his suggestions for fine-tuning. His recommendation was to select a learning rate about 40x smaller than pre-training, and linearly decay it to 0 over the course of training. For the small checkpoint, this would be 5e-4 / 40 = 1.25e-5, near enough 1e-5! So my empirical observations align with his 🙂
+
+You can use this as a rule of thumb for selecting the learning rate!
+pierre — Yesterday at 7:46 AM
+Thanks @sanchit-gandhi for your detailed answer.
