@@ -8,3 +8,4 @@ conda create -n whisper
 conda activate whisper
 
 ### Move files
+

@@ -190,3 +190,93 @@ For fine-tuning, we don't need to set any forced ids -> we train the model to pr
 
 Hope that makes sense!
 
+========================================================================================
+
+🤗 Updates from the HF team
+1. Do make sure to check if your model shows up on our leaderboard: https://huggingface.co/spaces/autoevaluate/leaderboards?dataset=mozilla-foundation%2Fcommon_voice_11_0&only_verified=0&task=automatic-speech-recognition&config=-unspecified-&split=-unspecified-&metric=wer - Let's race to beat the SoTA!!
+2. We heard that evaluation was a bottleneck for you all so we created a script: https://github.com/huggingface/community-events/blob/main/whisper-fine-tuning-event/run_eval_whisper_streaming.py
+All you need to do to run your experiments is this:
+python run_eval_whisper_streaming.py --model_id="openai/whisper-tiny.en" --config="en" --device=0
+
+Scroll down to the end of the script to checkout the parameters that you can play with. Happy evaluating!! ❤️
+3. Don't forget about our GPU giveaways for your spaces demos: https://discord.com/channels/879548962464493619/1050010333076537384/1050735976856690708
+We want to help you showcase your hardwork better 🤗 
+
+☁️ GPU on Lambda updates
+1. Don't forget to shut down your GPUs when not in use. Give them a little rest.
+2. Participate in the lambda cloud credits giveaway by tweeting your models & demos. All you need to do is tag @huggingface & @lambdaapi. Don't miss out on the chance to win 300 A100 GPU hours!!
+
+====================================================================================
+
+VB — Dec 9 at 6:29 AM
+@ml-4-audio - Some really exciting news!! We have decided to grant GPU upgrades for you to show off your fine-tuned models! You can use our official demo: https://huggingface.co/spaces/whisper-event/whisper-demo to retrofit it for your model.
+
+Here's what you'd need to do to claim it:
+1. Go to the whisper-demo space,
+2. Cliick on the three vertical dots on the right side  Duplicate this Space
+3. In the new space go to app.py and update your MODEL_NAME and lang
+4. Then head over to settings and click on Apply for a community grant - You can tag both reach-vb & sanchit-gandhi in your request.
+
+This all won't take more than 5 minutes. We'll be granting GPUs to those whose models are more closer to the SoTA (in their chosen language)! 🔥
+
+P.S. Don't forget to post them here in this channel :)) 
+Whisper Demo - a Hugging Face Space by whisper-event
+
+========================================================================================
+
+jilp — Yesterday at 4:44 PM
+Hi, I created scripts for speeding up the environment setup for Lambda cloud instances. Here's how to use them:
+
+1. Initialize the Lambda instance and launch the Cloud IDE.
+
+2. In Jupyter Lab, click on "Upload Files" and upload the two scripts install_ffmpeg_env.py and install_venv_env.py.
+
+3. SSH into the GPU from your local machine and run this command from your local device: python install_ffmpeg_env.py.
+
+4. You'll know the first script is finished when your virtual environment name is at the start of your command line.
+
+5. Run this command python install_venv_env.py and your environment will be ready.
+
+I hope they save you time and effort!
+import subprocess
+
+env_name = input("Enter the name of your virtual environment: ")
+
+commands = [
+    "sudo add-apt-repository -y ppa:jonathonf/ffmpeg-4",
+    "sudo apt update",
+    "sudo apt install -y ffmpeg",
+    "sudo apt-get install git-lfs",
+    f"python3 -m venv {env_name}",
+    f"echo \"source ~/{env_name}/bin/activate\" >> ~/.bashrc",
+    "bash"
+]
+
+for command in commands:
+    subprocess.run(command, shell=True)
+Collapse
+install_ffmpeg_env.py
+1 KB
+import subprocess
+import os
+
+# clone the community-events repository
+subprocess.run(["git", "clone", "https://github.com/huggingface/community-events.git"])
+
+# install the required packages
+os.chdir("community-events/whisper-fine-tuning-event")
+subprocess.run(["pip", "install", "-r", "requirements.txt"])
+
+# configure git credential helper
+subprocess.run(["git", "config", "--global", "credential.helper", "store"])
+
+# login to huggingface cli
+subprocess.run(["huggingface-cli", "login"])
+
+# install 🤗 libraries
+subprocess.run(["pip", "install", "--quiet", "datasets", "git+https://github.com/huggingface/transformers",\
+    "evaluate", "huggingface_hub", "jiwer", "bitsandbytes", "accelerate"])
+
+Note: placed these scripts in setup folder
+
+=========================================================================================
