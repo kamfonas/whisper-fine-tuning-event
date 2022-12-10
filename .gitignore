@@ -19,3 +19,5 @@ demoSave*
 assets/*
 */*.json
 *.zip
+.cache
+*.log
