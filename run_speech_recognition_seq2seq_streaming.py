@@ -17,8 +17,16 @@
 Fine-tuning the library models for sequence to sequence speech recognition
 with 🤗 Datasets' streaming mode.
 """
-# You can also adapt this script for your own sequence to sequence speech
-# recognition task. Pointers for this are left as comments.
+# This progam was modified by Michael Kamfonas (mkamfonas@infokarta.com) on Dec 11 2022
+# - added options for drpout, gradient_checkpointing, use_cache, stopping_strategy and streaming
+# - restructured it to enable both streaming and non-streaming modes 
+# - allows concatenation of mutiple datasets (single-string comma-separated) for interleaving
+#     The following params must have the same number of comma-separated (,) elements:
+#       dataset_name, 
+#       dataset_config_name, 
+#       train_split_name and eval_split_name (each element plus-separated (+) for multiple splits), 
+#       text_column_name and audio_column_name 
+ 
 
 import logging
 import os
