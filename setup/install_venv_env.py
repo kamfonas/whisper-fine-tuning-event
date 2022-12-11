@@ -1,8 +1,8 @@
 import subprocess
 import os
 
-# clone the community-events repository
-subprocess.run(["git", "clone", "https://github.com/huggingface/community-events.git"])
+# clone a copy of the community-events repository
+subprocess.run(["git", "clone", "https://github.com/kamfonas/whisper-fine-tuning-event.git"])
 
 # install the required packages
 os.chdir("community-events/whisper-fine-tuning-event")

@@ -1,4 +1,4 @@
-# whisper-sm-3k-intlv
+# whisper-sm-el-intlv-xs
 python run_speech_recognition_seq2seq_streaming.py \
                 --model_name_or_path   'openai/whisper-small' \
                 --model_revision   main \
@@ -21,14 +21,15 @@ python run_speech_recognition_seq2seq_streaming.py \
                 --do_normalize_eval   True \
                 --language   greek \
                 --task transcribe \
-                --shuffle_buffer_size   500 \
+                --shuffle_buffer_size   100 \
                 --output_dir   './data/finetuningRuns/whisper-sm-el-intlv-xs' \
+                --overwrite_output_dir   True \
                 --per_device_train_batch_size   16 \
                 --gradient_accumulation_steps  4 \
                 --learning_rate   1e-5 \
-                --dropout         0.1 
+                --dropout         0.1 \
                 --warmup_steps   500 \
-                --max_steps   6000 \
+                --max_steps   5000 \
                 --gradient_checkpointing   True \
                 --cache_dir   '~/.cache' \
                 --fp16   True \
@@ -44,4 +45,4 @@ python run_speech_recognition_seq2seq_streaming.py \
                 --metric_for_best_model   wer \
                 --greater_is_better   False \
                 --push_to_hub   False \
-                --overwrite_output_dir   True \ 
+
