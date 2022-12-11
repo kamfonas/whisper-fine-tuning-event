@@ -1,4 +1,166 @@
-sanchit-gandhi — Today at 10:55 AM
+
+## Thread about Whisper Greek Fine-tuning
+
+### sanchit-gandhi 12/06/2022 10:38 AM
+Wow great work! You've boosted the WER performance by nearly 10% compared to the original checkpoint, that's fantastic!
+
+![Comparative Performande:](assets/comparative_performance_el.png)
+
+You can see that for CV9 the small checkpoint from the Whisper paper gets 31% WER. We're now at 20% WER!
+Is there a file called "README.md" that's in your local directory that wasn't pushed to Hub? If so, could you copy and paste it here? We can add it to your model so that it gets tracked on the leaderboard 🙂
+Right here's what I suggest! We can try two things:
+1) We combine the Greek splits of CV11 and FLEURS to give a larger training set. This will prevent overfitting and help your model get even better performance!
+
+2) We have a go fine-tuning the 'medium' checkpoint! The medium checkpoint works nearly 10% better than small out of the box. If we fine-tune the medium checkpoint, we'll no doubt smash the 20% WER you got with small
+
+I personally think we should try 2 first and see how good we can go with just the CV11 training data!
+
+
+### sanchit-gandhi — 12/06/2022 11:02 AM
+Awesome @MilesT! Maybe you can share with @farsipal what sort of batch sizes and learning rates worked well, and if the model started to overfit? It might be that we need to do 1 and 2 at the same time to get decent performance with the medium checkpoint (CV11 & FLEURS)
+
+### MilesT — 12/06/2022 11:04 AM
+Yes, while the WER went lower, it did start to overfit
+
+### sanchit-gandhi — 12/06/2022 11:11 AM
+Okay should we try combining the CV11 and FLEURS datasets together? I added a section to the README yesterday on how you can do this! https://github.com/huggingface/community-events/tree/main/whisper-fine-tuning-event#mixing-datasets-optional
+We can also try setting some regularisation:
+
+```
+model.config.dropout = 0.1
+```
+
+Let's not go too high though either 0.05 or 0.1. The model was not pre-trained with regularisation so the activations go a bit crazy if you go too high 😅
+It didn't work for me going higher than 0.1 for English or Hindi (results got worse)
+
+### MilesT — 12/06/2022 11:32 AM
+
+ok 🙂
+
+### Transformer — 12/06/2022 2:06 PM
+Hi @sanchit-gandhi , can we combine all the splits while in streaming mode? e.g do something like 
+
+load_dataset("google/fleurs", "el_gr", split="train+validation", use_auth_token=access_token, streaming=True)
+
+### farsipal — 12/06/2022 3:15 PM
+Hi @MilesT 
+My progress bar is not working so I have no it/sec to give you, but  the 5000 steps of greek subset transcription training took somewhere between 16-18 hours. I am doing batch=16 accumulate=4
+
+If I am doing this right the equivalent with A100 based on the 0.14 number is 1÷0.14×5000=9.9 but I don't think that includes validation time. I think the laptop 3080 is about 15-30% slower than the equivalent server 3080. I am not sure how the A100 relates to the 3080 though. 
+
+### farsipal — 12/06/2022 3:25 PM
+This function combines splits of one dataset. We want to combine splits from fleurs and common-voice into one interleaved set.  I assume that when we straddle datasets column names and various formatting conventions may be different. The new script provided by @sanchit-gandhi  seems to address these discrepancies.
+
+### Transformer — 12/06/2022 4:40 PM
+Did you manage to interleave common_voice and fleurs datasets? I get this error when trying to do that: 
+
+```
+ValueError: The features can't be aligned because the key audio of features {'audio': {'array': Sequence(feature=Value(dtype='float64', id=None), length=-1, id=None), 'path': Value(dtype='string', id=None), 'sampling_rate': Value(dtype='int64', id=None)}, 'sentence': Value(dtype='string', id=None)} has unexpected type - {'array': Sequence(feature=Value(dtype='float64', id=None), length=-1, id=None), 'path': Value(dtype='string', id=None), 'sampling_rate': Value(dtype='int64', id=None)} (expected either {'array': Sequence(feature=Value(dtype='float32', id=None), length=-1, id=None), 'path': Value(dtype='string', id=None), 'sampling_rate': Value(dtype='int64', id=None)} or Value("null").
+```
+
+### MilesT — 12/06/2022 5:08 PM
+I think on common the column name is "sentence" and on fleurs "transcription"
+
+### farsipal — 12/06/2022 6:17 PM
+What code are you using? I haven't looked at the new  dataset interleaving script that @sanchit-gandhi  put on the repo but I assume it handles these incompatibilities among different datasets.  Here is his explanation:
+https://github.com/huggingface/community-events/tree/main/whisper-fine-tuning-event#mixing-datasets-optional
+
+... and the new notebook is in [github](https://github.com/huggingface/community-events/blob/main/whisper-fine-tuning-event/interleave_streaming_datasets.ipynb)
+
+community-events/interleave_streaming_datasets.ipynb at main · hugg...
+Place where folks can contribute to 🤗 community events - community-events/interleave_streaming_datasets.ipynb at main · huggingface/community-events
+community-events/interleave_streaming_datasets.ipynb at main · hugg...
+GitHub
+community-events/whisper-fine-tuning-event at main · huggingface/co...
+Place where folks can contribute to 🤗 community events - community-events/whisper-fine-tuning-event at main · huggingface/community-events
+community-events/whisper-fine-tuning-event at main · huggingface/co...
+
+### MilesT — 12/06/2022 7:52 PM
+I have nt tried combining them yet.
+
+With common I got
+
+Step  Training Loss    Validation Loss    Wer
+1000    0.003100             0.392812         14.803120
+
+With fleurs
+
+  Step  Training Loss    Validation Loss    Wer
+1000     0.000600           0.271835            15.439430
+2000     0.000300            0.286419           15.584587
+### Transformer — 12/07/2022 1:10 AM
+yes I used this script but it seems that has a bug
+### sanchit-gandhi — 12/07/2022 7:10 AM
+Hey @Transformer! There's no bug in the script 😉 You just need to install datasets from main:
+
+pip uninstall datasets
+pip install git+https://github.com/huggingface/datasets
+
+
+There's a note in the notebook about this:
+Image
+The method remove_columns was broken in Datasets. A patch was merged last week. We need to install datasets from main to get these changes!
+### sanchit-gandhi — 12/07/2022 7:12 AM
+I've written a function that let's you do this! See the notebook https://github.com/huggingface/community-events/blob/main/whisper-fine-tuning-event/fine-tune-whisper-streaming.ipynb:
+
+def load_streaming_dataset(...):
+    ...
+
+load_streaming_dataset("mozilla-foundation/common_voice_11_0", "es", split="train+validation", use_auth_token=True)
+
+ 
+Let me know if you have any other questions / issues! Happy to help!
+### sanchit-gandhi — 12/07/2022 7:14 AM
+Interesting! They're similar sized training sets, so makes sense that the eval WER performance is similar. Let's try combining them!
+### sanchit-gandhi — 12/07/2022 7:15 AM
+Is this with the medium checkpoint evaluated on Greek CV11?
+### Transformer — 12/07/2022 7:19 AM
+@sanchit-gandhi  I got this error when trying to combine them for the greek language
+I run it again with the new installation of datasets and it is ok now. Thank you
+### MilesT — 12/07/2022 7:36 AM
+On November I used CV11 and yesterday fleurs   the result is at  https://huggingface.co/emilios/whisper-medium-el
+emilios/whisper-medium-el · Hugging Face
+emilios/whisper-medium-el · Hugging Face
+### MilesT — 12/07/2022 7:39 AM
+can you share your notebook please?  are you finetuning whisper medium too?
+### sanchit-gandhi — 12/07/2022 9:51 AM
+Fantastic! Glad it worked @Transformer!
+### MilesT — 12/07/2022 1:30 PM
+@farsipal i get this error with your notebook. did you get this error?
+Image
+### farsipal — 12/07/2022 2:20 PM
+which notebook was this @Aigiz?  can you be more specific? what notebook and what cell fails?
+### MilesT — 12/07/2022 9:31 PM
+I used your notebook https://huggingface.co/farsipal/whisper-small-el/blob/main/fine-tune-whisper-streaming-cf11-el-v2.ipynb
+after I wrote to you, I decided to compare your notebook and the original.
+model.config.forced_decoder_ids = None
+ Set None like here and now it works. Do you know is it ok?
+fine-tune-whisper-streaming-cf11-el-v2.ipynb · farsipal/whisper-sma...
+fine-tune-whisper-streaming-cf11-el-v2.ipynb · farsipal/whisper-sma...
+### sanchit-gandhi — 12/08/2022 5:51 AM
+Hey @Aigiz! 
+
+    model.config.forced_decoder_ids = None
+
+This is correct! The forced_decoder_ids specify certain tokens that are 'forced' at the beginning of the generation process. The probabilities of these tokens are set to 1 in the decoding process. We use the 'forced' ids for inference with the pre-trained model to control the language and the task (transcribe or translate). 
+
+For fine-tuning, we don't need to set any forced ids -> we train the model to predict the correct language and task tokens, so the fine-tuned model knows the correct language and task ids to set by itself 🙂 
+
+Hope that makes sense!
+### Transformer — Today at 7:51 AM
+@MilesT did you manage to use both common voice and fleurs for fine tuning? My training stops at step 1000 with this error even though I have converted the sampling rate to 16000
+Image
+
+### MilesT — Today at 8:27 AM
+I got the same problem on script, but on notebook it's ok. 
+I guess we 're missing something 😊
+@farsipal if I remember correctly you got a .py that works for interleaving?
+### farsipal — Today at 10:45 AM
+I have the script modified so that it does both dataset interleaving and runs non-streaming (for smaller sets like el). 
+[Here it is.](https://github.com/kamfonas/whisper-fine-tuning-event/blob/minor-mods-by-farsipal/run_speech_recognition_seq2seq_streaming.py)
+
+# Sanch Gandhi Suggestions 
+### sanchit-gandhi — Today at 10:55 AM
 Thanks for sharing your results @farsipal! I'll summarise them briefly here:
 
 1) No fine-tuning: 31% WER (this is from Whisper paper on CV9, would be similar for CV11)
@@ -224,6 +386,7 @@ Whisper Demo - a Hugging Face Space by whisper-event
 
 ========================================================================================
 
+# @jilp Scripts for Setup on cloud
 jilp — Yesterday at 4:44 PM
 Hi, I created scripts for speeding up the environment setup for Lambda cloud instances. Here's how to use them:
 
@@ -239,7 +402,7 @@ Hi, I created scripts for speeding up the environment setup for Lambda cloud ins
 
 I hope they save you time and effort!
 import subprocess
-
+```
 env_name = input("Enter the name of your virtual environment: ")
 
 commands = [
@@ -254,7 +417,8 @@ commands = [
 
 for command in commands:
     subprocess.run(command, shell=True)
-Collapse
+```
+```
 install_ffmpeg_env.py
 1 KB
 import subprocess
@@ -276,10 +440,11 @@ subprocess.run(["huggingface-cli", "login"])
 # install 🤗 libraries
 subprocess.run(["pip", "install", "--quiet", "datasets", "git+https://github.com/huggingface/transformers",\
     "evaluate", "huggingface_hub", "jiwer", "bitsandbytes", "accelerate"])
-
+```
 Note: placed these scripts in setup folder
 
 =========================================================================================
+# Learning Rate Discussion
 
 ierre — 12/07/2022 7:05 AM
 @sanchit-gandhi Hi. In the github whisper page event, the learning rate is 1e-5. However, I do not see this value in the Whisper OpenAI paper (see page 28 and screen-shot). What is your proposal for each Whisper model (tiny, base, small, medium, large, large v2)? Thank you. (note: I understand that the LR for fine tuning is lower than the LR for pre-training but since the LR value is really important to get good results, I prefer to ask) 
@@ -287,7 +452,13 @@ Image
 sanchit-gandhi — Yesterday at 6:04 AM
 Hey @pierre! Great question! The learning rate is indeed a very important parameter to get good fine-tuning performance, and one that we have to experiment with to get right. My recommendation would be to monitor the training loss for the first 500-1000 training steps of your fine-tuning run to gauge whether you've set the learning rate appropriately. Each case is different, but I've tried to give a setting that works best for most!
 
+![Learning Rates:](assets/learning_rates.png)
+
 In practice, using a lower learning rate for fine-tuning vs pre-training gives superior results. These are the observations that I made when fine-tuning the Whisper model for the ESB paper (https://arxiv.org/abs/2210.13352) and from my extensive testing for multilingual fine-tuning prior to the event. Generally, I found that a learning rate of 1e-5 worked well for the small and medium checkpoints across most languages. This is the highest learning rate that you can get away with without the gradient updates becoming noisy. Selecting a higher learning rate means that you perform larger parameter updates, and so should be able to push the parameters into a more optimal range faster. But if you go too high, you risk the gradient updates becoming unstable, giving a noisy training loss curve and noisy parameter updates. This is when you'll get worse performance.
+
+![Smooth](assets/train-Loss1.png)
+
+![Noisy](assets/train-Loss2.png)
 
 A good training loss curve looks similar to the one from @farsipal from the Greek fine-tuning run (https://huggingface.co/farsipal/whisper-small-el). Look how it smoothly decays. This is exactly what we want from a loss curve 
 Image

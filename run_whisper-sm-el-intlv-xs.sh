@@ -30,6 +30,7 @@ python run_speech_recognition_seq2seq_streaming.py \
                 --dropout         0.1 \
                 --warmup_steps   500 \
                 --max_steps   5000 \
+                --eval_steps   1000 \
                 --gradient_checkpointing   True \
                 --cache_dir   '~/.cache' \
                 --fp16   True \
@@ -38,11 +39,12 @@ python run_speech_recognition_seq2seq_streaming.py \
                 --predict_with_generate   True \
                 --generation_max_length   225 \
                 --save_steps   1000 \
-                --eval_steps   1000 \
                 --logging_steps   25 \
                 --report_to   tensorboard \
                 --load_best_model_at_end   True \
                 --metric_for_best_model   wer \
                 --greater_is_better   False \
                 --push_to_hub   False \
+
+#
 
