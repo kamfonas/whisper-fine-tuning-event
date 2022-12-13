@@ -139,6 +139,11 @@ class ModelArguments:
         default = 0.0, metadata = {"help": "dropout probability."}
     )
 
+    attention_dropout: float = field(
+        default = 0.0, metadata = {"help": "attention_dropout probability."}
+    )
+
+
 
 @dataclass
 class DataTrainingArguments:
@@ -493,6 +498,7 @@ def main():
 
     model.config.use_cache = model_args.use_cache
     model.config.dropout = model_args.dropout
+    model.config.attention_dropout = model_args.attention_dropout
     if training_args.gradient_checkpointing:
         model.gradient_checkpointing_enable()
 
