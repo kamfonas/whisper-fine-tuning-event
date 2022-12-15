@@ -625,7 +625,8 @@ def main():
     with training_args.main_process_first(desc="dataset map pre-processing"):
         vectorized_datasets = raw_datasets.map(
             prepare_dataset,
-            remove_columns=raw_datasets_features
+            remove_columns=raw_datasets_features,
+            num_proc=training_args.dataloader_num_workers if training_args.dataloader_num_workers else 1
         ).with_format("torch")
 
         if training_args.do_train and data_args.streaming:
