@@ -1,13 +1,13 @@
 # whisper-md-el-intlv-xs
 python run_speech_recognition_seq2seq_streaming.py \
-                --model_name_or_path   'openai/whisper-medium' \
+                --model_name_or_path   'openai/whisper-large-v2' \
                 --model_revision   main \
                 --do_train   True \
                 --do_eval   True \
                 --use_auth_token   False \
                 --freeze_feature_encoder   False \
                 --freeze_encoder   False \
-                --model_index_name   'whisper-md-el-intlv-xs' \
+                --model_index_name   'whisper-lg-el-intlv-xs' \
                 --dataset_name 'mozilla-foundation/common_voice_11_0,google/fleurs' \
                 --dataset_config_name 'el,el_gr' \
                 --train_split_name  'train+validation,train+validation' \
@@ -22,12 +22,13 @@ python run_speech_recognition_seq2seq_streaming.py \
                 --language   greek \
                 --task transcribe \
                 --shuffle_buffer_size   500 \
-                --output_dir   './data/finetuningRuns/whisper-md-el-intlv-xs' \
+                --output_dir   './data/finetuningRuns/whisper-lg-el-intlv-xs' \
                 --overwrite_output_dir   True \
-                --per_device_train_batch_size   32 \
-                --gradient_accumulation_steps  1 \
-                --learning_rate   8e-6 \
+                --per_device_train_batch_size   8 \
+                --gradient_accumulation_steps  4 \
+                --learning_rate   3.5e-6 \
                 --dropout         0.1 \
+                --attention_dropout 0.0 \
                 --warmup_steps   500 \
                 --max_steps   10000 \
                 --eval_steps   1000 \
@@ -44,7 +45,8 @@ python run_speech_recognition_seq2seq_streaming.py \
                 --load_best_model_at_end   True \
                 --metric_for_best_model   wer \
                 --greater_is_better   False \
-                --push_to_hub   False 
+                --push_to_hub   False  \
+                --dataloader_num_workers 1
 
 
 #

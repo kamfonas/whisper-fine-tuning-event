@@ -26,7 +26,8 @@ python run_speech_recognition_seq2seq_streaming.py \
                 --overwrite_output_dir   True \
                 --per_device_train_batch_size   16 \
                 --gradient_accumulation_steps  4 \
-                --learning_rate   1e-5 \
+                --learning_rate   5e-6 \
+                --weight_decay    0.01 \
                 --dropout         0.1 \
                 --warmup_steps   500 \
                 --max_steps   5000 \

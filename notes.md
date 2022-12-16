@@ -470,3 +470,36 @@ I asked the Whisper author Jong Wook Kim (who spoke on Monday) about his suggest
 You can use this as a rule of thumb for selecting the learning rate!
 pierre — Yesterday at 7:46 AM
 Thanks @sanchit-gandhi for your detailed answer.
+
+# Restart - ignore_data_skip
+### VB — 12/04/2022 1:04 PM
+Not really! It is a Trainer argument.
+
+    ignore_data_skip (bool, optional, defaults to False) — When resuming training, whether or not to skip the epochs and batches to get the data loading at the same stage as in the previous training. If set to True, the training will begin faster (as that skipping step can take a long time) but will not yield the same results as the interrupted training would have.
+
+
+https://huggingface.co/docs/transformers/main_classes/trainer
+
+
+# Evaluation Question
+
+### sanchit-gandhi — 12/14/2022 at 10:00 AM
+Thanks for helping out here @Dn! Exactly this - we load the "test" split of CV11 in streaming mode and pass the auth token arg to signal to load_dataset that it should read our authentication token in order to get access to CV11 from the HF Hub
+
+### sanchit-gandhi — 12/14/2022 at 10:02 AM
+Yep! We can train on however much data we want! More training data is generally better. But at the end of the day what we care about is performance on the test set of CV11, so we'll just evaluate on this dataset. If we wanted to, we could evaluate on FLEURS as well to see how our model performs there, but this would add a some extra code + time overhead to our training script since we'd have to perform additional inference 
+We can of course perform standalone evaluation on FLEURS after training using @VB's eval script: https://github.com/huggingface/community-events/tree/main/whisper-fine-tuning-event#evaluation
+
+
+# Script to combine Interleaving and Stream/No-Stream
+### sanchit-gandhi — 12/14/2022 at 9:50 AM
+Hey @farsipal! This is super cool! Really like your API for combining different datasets, it's very clean 👌 Have you managed to fine-tune a model with the combined CV11 + FLEURS datasets?
+
+Currently we call the dataset .map method with just one worker, i.e. num_proc=1 (default): https://github.com/kamfonas/whisper-fine-tuning-event/blob/e0377f55004667f18b37215d11bf0e54f5bda463/run_speech_recognition_seq2seq_streaming.py#L626
+
+With non-streaming mode, you'd benefit from a big speed-up by setting num_proc=data_args.preprocessing_num_workers in the .map method  (as we do in the 'official' transformers examples): https://github.com/huggingface/transformers/blob/7b23a582b9731d6dc7ac718f44843105f2db7537/examples/pytorch/speech-recognition/run_speech_recognition_seq2seq.py#L445
+
+This way, you can utilise multiple CPU cores to perform the dataset .map method in parallel 
+Let me know if you have any questions regarding this, more than happy to help!
+### farsipal  — 12/14/2022 at 10:40 AM
+Thanks @sanchit-gandhi. I have a mod in the works and I will add the num_workers. The argument is already there but I have to make use of it.
