@@ -503,3 +503,74 @@ This way, you can utilise multiple CPU cores to perform the dataset .map method 
 Let me know if you have any questions regarding this, more than happy to help!
 ### farsipal  — 12/14/2022 at 10:40 AM
 Thanks @sanchit-gandhi. I have a mod in the works and I will add the num_workers. The argument is already there but I have to make use of it.
+
+# Torch 2
+
+### MilesT — 12/17/2022 at 9:29 AM
+
+Has anyone tried torch compile with mode max-autotune  or mode reduce-overhead ?
+@sanchit-gandhi @mikr
+pytorch 2.0
+@KLyN
+
+Vasista
+ — 
+Today at 9:37 AM
+@MilesT Thanks for asking about this. To the best of my knowledge, it should work by just wrapping the loaded model with torch.compile. But, would like to know if anyone has tried this and if any further changes are necessary.
+MilesT
+ — 
+Today at 10:11 AM
+I ve just started it and it looks a lot faster
+ales
+ — 
+Today at 10:14 AM
+can you tell what is the exact speed up?
+Vasista
+ — 
+Today at 10:14 AM
+@MilesT is there any change other than model = torch.compile(model), that you had to make? 
+MilesT
+ — 
+Today at 10:18 AM
+deepspeed run_speech_recognition_seq2seq_streaming.py \
+--torch_compile="True" \
+--torch_compile_mode="max-autotune" \
+On run.sh
+I think previous runs for large needed something like 16 hours (have to look it up)
+Right now it shows
+
+352/5000 [37:44<8:16:46,  6.41s/it
+The above are with interleaved cv11 with fleurs, non streaming, large v2, deepspeed, pytorch compile and max autotune
+
+__ 
+@mikr how did you get these results? 
+
+ 808/5000 [2:33:26<13:21:32, 11.47s/it
+Deepspeed, pytorch stable, large v2 and single lambda gpu?
+Vasista
+ — 
+Today at 10:50 AM
+I don't find these arguments specified in https://github.com/huggingface/community-events/blob/main/whisper-fine-tuning-event/run_speech_recognition_seq2seq_streaming.py. Are you using a different run_speech_recognition_seq2seq_streaming.py?
+mikr
+ — 
+Today at 11:17 AM
+with deepspeed, torch==1.13.0, large-v2 and single a100 gpu
+run command here
+https://huggingface.co/mikr/whisper-large2-czech-cv11-v2/blob/main/run.sh
+logs here
+https://huggingface.co/mikr/whisper-large2-czech-cv11-v2/raw/main/run.log
+MilesT
+ — 
+Today at 11:39 AM
+On the log it s about 18.5 hours so pytorch nightly is definitely worth it
+__ 
+Right now I get
+1033/5000 [1:59:02<7:02:57,  6.40s/it 
+mikr
+ — 
+Today at 12:09 PM
+definitely, I am preparing deepspeed docker and after that I'll try to upgrade torch too
+farsipal
+ — 
+Today at 12:16 PM
+Has anyone been able to install torch 2.0 and torchaudio? pip finds a conflict with torchaudio
