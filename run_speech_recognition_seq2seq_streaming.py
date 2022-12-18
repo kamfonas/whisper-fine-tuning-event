@@ -53,11 +53,11 @@ from transformers import (
     TrainerCallback,
     set_seed,
 )
+from transformers.models.whisper.english_normalizer import BasicTextNormalizer
 from transformers.trainer_pt_utils import IterableDatasetShard
 from transformers.trainer_utils import get_last_checkpoint, is_main_process
 from transformers.utils import check_min_version, send_example_telemetry
 from transformers.utils.versions import require_version
-from transformers.models.whisper.english_normalizer import BasicTextNormalizer
 
 TEXT_COL_NAME="text"
 AUDIO_COL_NAME="audio"
@@ -141,6 +141,10 @@ class ModelArguments:
 
     attention_dropout: float = field(
         default = 0.0, metadata = {"help": "attention_dropout probability."}
+    )
+
+    compile_model: bool = field(
+        default=False, metadata={"help": "Only for torch releases 2.0 and higher, to compile the model"}
     )
 
 
@@ -387,8 +391,14 @@ def load_multiple_streaming_datasets(
             dset_splits = [ds if AUDIO_COL_NAME in ds.column_names else ds.rename_column(audColNm, AUDIO_COL_NAME) \
                 for ds in dset_splits]
         
-        if len(dset_splits)>0 and sampling_rate != next(iter(dset_splits[0]))[AUDIO_COL_NAME]['sampling_rate']:
-            dset_splits = [ds.cast_column(AUDIO_COL_NAME, Audio(sampling_rate)) for ds in dset_splits]
+        if len(dset_splits)>0:
+            try:
+                data_sampling_rate = next(iter(dset_splits)).features[AUDIO_COL_NAME].sampling_rate
+            except:
+                data_sampling_rate = next(iter(dset_splits[0]))[AUDIO_COL_NAME]['sampling_rate']
+
+            if sampling_rate != data_sampling_rate:
+                dset_splits = [ds.cast_column(AUDIO_COL_NAME, Audio(sampling_rate)) for ds in dset_splits]
 
         cols2keep = set([AUDIO_COL_NAME, TEXT_COL_NAME])
 
@@ -474,6 +484,7 @@ def main():
 
     config.update({ "forced_decoder_ids": model_args.forced_decoder_ids, 
                     "suppress_tokens": model_args.suppress_tokens})
+                    
 
     feature_extractor = AutoFeatureExtractor.from_pretrained(
         model_args.feature_extractor_name if model_args.feature_extractor_name else model_args.model_name_or_path,
@@ -496,7 +507,7 @@ def main():
         use_auth_token=True if model_args.use_auth_token else None,
     )
 
-    model.config.use_cache = model_args.use_cache
+    model.config.use_cache = False if training_args.gradient_checkpointing else model_args.use_cache
     model.config.dropout = model_args.dropout
     model.config.attention_dropout = model_args.attention_dropout
     if training_args.gradient_checkpointing:
@@ -512,6 +523,9 @@ def main():
     if model_args.freeze_encoder:
         model.freeze_encoder()
         model.model.encoder.gradient_checkpointing = False
+
+    if model_args.compile_model and torch.version.__version__.split('.')[0] > '1':
+        model = torch.compile(model)
 
     if data_args.language is not None:
         # We only need to set the task id when the language is specified (i.e. in a multilingual setting)
